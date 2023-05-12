@@ -260,6 +260,7 @@ namespace Lifu
                         if ((IntPtr) TargetInvSlot == IntPtr.Zero)
                         {
                             PrintError("背包内没有理符要求的物品!");
+                            PrintError("如果是武器, 请放到背包, 不要放在兵装库!");
                             break;
                         }
                     }
@@ -317,7 +318,7 @@ namespace Lifu
                 }
 
                 int _targetDelay = config.TargetDelay;
-                if (ImGui.InputInt("选择NPC延时(毫秒)", ref _targetDelay))
+                if (ImGui.InputInt("自动选择NPC延时(毫秒)", ref _targetDelay))
                 {
                     config.TargetDelay = _targetDelay;
                     config.Save();
