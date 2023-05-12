@@ -30,6 +30,7 @@ using Lumina.Excel.GeneratedSheets;
 using ImGuiNET;
 using ClickLib.Clicks;
 using FFXIVClientStructs.Attributes;
+using FFXIVClientStructs.FFXIV.Client.Game;
 
 namespace Lifu
 {
@@ -50,15 +51,15 @@ namespace Lifu
         private IntPtr TakenQeustParam1;
 
         private Hook<RequestHook> requestHook;
-        private delegate IntPtr RequestHook(long a, long b, int c, Int16 d, long e);
-        public long RequestParam1;
-        public long RequestParam2;
+        private delegate IntPtr RequestHook(long a, InventoryItem* b, int c, Int16 d, byte e);
+        public IntPtr InvManager;
+        public InventoryItem* TargetInvSlot = (InventoryItem*) IntPtr.Zero;
 
         private delegate IntPtr LeveHook(IntPtr a);
         private Hook<LeveHook> leveHook;
-        public IntPtr leveQuests;
-        private IntPtr leveList;
-        public IntPtr RequestParam2_Base;
+        // public IntPtr leveQuests;
+        // private IntPtr leveList;
+        // public IntPtr RequestParam2_Base;
         private static RaptureAtkUnitManager* raptureAtkUnitManager;
 
         int LeveQuestId;
@@ -81,16 +82,16 @@ namespace Lifu
 
             accessGameObject = Marshal.GetDelegateForFunctionPointer<AccessGameObjDelegate>(DalamudApi.SigScanner.ScanText("E9 ?? ?? ?? ?? 48 8B 01 FF 50 08"));
 
-            TakenQeustParam1 = DalamudApi.SigScanner.GetStaticAddressFromSig("48 89 05 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? 4C 8D 0D ?? ?? ?? ?? 45 84 ED");
-            RequestParam1 = (long)DalamudApi.SigScanner.GetStaticAddressFromSig("48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8D 0D ?? ?? ?? ?? 48 83 C4 28 E9 ?? ?? ?? ?? 8B 05 ?? ?? ?? ?? 89 05 ?? ?? ?? ?? C3 CC CC CC 8B 05 ?? ?? ?? ?? 89 05 ?? ?? ?? ?? C3 CC CC CC F3 0F 10 05 ?? ?? ?? ??");
-            RequestParam2_Base = DalamudApi.SigScanner.GetStaticAddressFromSig("48 8B 05 ?? ?? ?? ?? 4C 8B 40 18 45 8B 40 18");
-            RequestParam2 = Marshal.ReadInt64(Marshal.ReadIntPtr(Marshal.ReadIntPtr(Marshal.ReadIntPtr(RequestParam2_Base) + 0x70) - 0x8 + 0x106b8 + 0x70) + 0x5e8);
-            Print(RequestParam2.ToString("x"));
-            leveList = DalamudApi.SigScanner.GetStaticAddressFromSig("48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8D 0D ?? ?? ?? ?? 48 83 C4 28 E9 ?? ?? ?? ?? 48 83 EC 28 33 D2") + 0xa268 + 0xa8 + 0x54;
+            TakenQeustParam1 = DalamudApi.SigScanner.GetStaticAddressFromSig("48 89 05 ?? ?? ?? ?? 8B 44 24 70");
+            InvManager = (IntPtr) InventoryManager.Instance();
+            // RequestParam2_Base = DalamudApi.SigScanner.GetStaticAddressFromSig("4C 8B 40 18 45 8B 40 18");
+            // RequestParam2 = Marshal.ReadInt64(Marshal.ReadIntPtr(Marshal.ReadIntPtr(Marshal.ReadIntPtr(RequestParam2_Base) + 0x70) - 0x8 + 0x106b8 + 0x70) + 0x5e8);
+            // Print($"{RequestParam2:X}");
+            // leveList = DalamudApi.SigScanner.GetStaticAddressFromSig("48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8D 0D ?? ?? ?? ?? 48 83 C4 28 E9 ?? ?? ?? ?? 48 83 EC 28 33 D2") + 0xa268 + 0xa8 + 0x54;
             this.NextClick = DateTime.Now;
-            takenQeustHook ??= Hook<TakenQeustHook>.FromAddress(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B6 D8 EB 06"), new TakenQeustHook(TakenQeustDetour));
+            takenQeustHook ??= Hook<TakenQeustHook>.FromAddress(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B6 D8 EB ?? 48 8B 01"), new TakenQeustHook(TakenQeustDetour));
             takenQeustHook.Enable();
-            requestHook ??= Hook<RequestHook>.FromAddress(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 8B 4D A7 8B F8"), new RequestHook(RequestDetour));
+            requestHook ??= Hook<RequestHook>.FromAddress(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B CE E8 ?? ?? ?? ?? 48 8B 5C 24 40 4C 8B 74 24 48"), new RequestHook(RequestDetour));
             requestHook.Enable();
             leveHook ??= Hook<LeveHook>.FromAddress(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8D BB ?? ?? ?? ?? 33 D2 8D 4E 10"), new LeveHook(LeveDetour));
             leveHook.Enable();
@@ -104,7 +105,6 @@ namespace Lifu
             pluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
 
             SetLeve();
-
         }
         #region IDisposable Support
         public void Dispose()
@@ -120,13 +120,16 @@ namespace Lifu
         }
         #endregion
 
-        private IntPtr RequestDetour(long a, long b, int c, short d, long e)
+        private IntPtr RequestDetour(long a, InventoryItem* b, int c, short d, byte e)
         {
             if (Debug)
             {
-                Print($"[RequestHook]{a:X} {b:X} {c} {d} {e:X}");
-                Print($"[RequestHook] Magic={c}");
+                // PluginLog.Log($"[RequestHook] ReqParam1 -> {InvManager:X}");
+                // PluginLog.Log($"[RequestHook] ItemSlot -> {:X}");
+                PluginLog.Log($"[RequestHook] {a:X} {(IntPtr) b:X} {c} {d} {e:X}");
+                PluginLog.Log($"[RequestHook] Magic={c}");
             }
+
             if (Dirty)
             {
                 Print($"[RequestHook] Magic={c} 设置完成。");
@@ -139,7 +142,7 @@ namespace Lifu
         private IntPtr TakenQeustDetour(long a1, long a2) => takenQeustHook.Original(a1, a2);
         private IntPtr LeveDetour(IntPtr a)
         {
-            leveQuests = a - 84;
+            // leveQuests = a - 84;
             return leveHook.Original(a);
         }
 
@@ -154,13 +157,18 @@ namespace Lifu
             LeveNpc1 = config.LeveNpc1;
             LeveNpc2 = config.LeveNpc2;
             LeveTakenGui = $"将{ItemName}提交给{LeveNpc2}";
-
         }
         public static bool IsAddonReady(AtkUnitBase* addon)
         {
             return addon->IsVisible && addon->UldManager.LoadedState == AtkLoadState.Loaded;
         }
+
         private bool Enabled;
+        Random rd = new Random();
+
+        private bool await = false;
+        private DateTime nextTarget;
+
         private void Update(Framework framework)
         {
             var isMainMenu = !DalamudApi.Condition.Any();
@@ -170,19 +178,40 @@ namespace Lifu
             {
                 if (Enabled)
                 {
-                    Random rd = new Random();
                     var now = DateTime.Now;
                     if (this.NextClick > now)
                     {
                         return;
                     }
-                    this.NextClick = DateTime.Now.AddSeconds(rd.NextSingle());
+
+                    this.NextClick = DateTime.Now.AddMilliseconds(Math.Min(200, rd.Next(2) * 200));
                     TickTalk();
                     SelectString("有什么事？", 3);
                     SelectIconString(LeveQuestName);
                     SubmitQuestItem(LeveItemMagic);
                     SelectYes("确定要交易优质道具吗？");
                     TickQuestComplete();
+
+                    nextTarget = DateTime.Now.AddMilliseconds(config.TargetDelay);
+                    await = false;
+                }
+            } else
+            {
+                if (Enabled)
+                {
+                    if ((IntPtr)TargetInvSlot != IntPtr.Zero && TargetInvSlot->ItemID == 0)
+                    {
+                        Enabled = false;
+                        TargetInvSlot = (InventoryItem*)IntPtr.Zero;
+                        PrintError("背包内没有相应的物品!");
+                        return;
+                    }
+
+                    if (!await && DateTime.Now > nextTarget)
+                    {
+                        targetByName(!IsLeveExists((ushort) LeveQuestId) ? config.LeveNpc1 : config.LeveNpc2);
+                        await = true;
+                    }
                 }
             }
         }
@@ -268,6 +297,14 @@ namespace Lifu
                     config.Save();
                     SetLeve();
                 }
+
+                int _targetDelay = config.TargetDelay;
+                if (ImGui.InputInt("选择目标延时", ref _targetDelay))
+                {
+                    config.TargetDelay = _targetDelay;
+                    config.Save();
+                }
+
                 var _npc1 = config.LeveNpc1;
                 if (ImGui.InputText("接任务NPC", ref _npc1, 16))
                 {
@@ -317,32 +354,22 @@ namespace Lifu
             var textComponent = (AtkComponentNode*)questAddon->UldManager.NodeList[20];
             var a = (AtkTextNode*)textComponent;
 
-            if (LeveNpc1 == Marshal.PtrToStringUTF8((IntPtr)a->NodeText.StringPtr)
-                    && !(existLeve(LeveQuestId))
-                )
+            if (LeveNpc1 == Marshal.PtrToStringUTF8((IntPtr)a->NodeText.StringPtr) && !IsLeveExists((ushort) LeveQuestId))
             {
                 var b = Marshal.ReadInt64(TakenQeustParam1);
                 if (b > 0) takenQeustHook.Original(b, LeveQuestId);
             }
             else
-            {//跳对话
+            {   //跳对话
                 ClickTalk.Using(addon).Click();
                 //clickManager.SendClick(addon, ClickManager.EventType.MOUSE_CLICK, 0, ((AddonTalk*)talkAddon)->AtkEventListenerUnk.AtkStage);
             }
         }
-        bool existLeve(int leveId)
+        bool IsLeveExists(ushort leveId)
         {
-            if (leveQuests != IntPtr.Zero)
-            {
-                for (int i = 0; i < 10; i++)
-                {
-                    var offset = leveList + 36 * i + 8;
-                    var id = Marshal.ReadInt32(offset);
-                    if (id == leveId) return true;
-                }
-            }
-            return false;
+            return QuestManager.Instance()->GetLeveQuestById(leveId) != null;
         }
+
         bool takenLeve(string text)
         {
             var dataHolder = ((UIModule*)DalamudApi.GameGui.GetUIModule())->GetRaptureAtkModule()->AtkModule.AtkArrayDataHolder;
@@ -382,20 +409,33 @@ namespace Lifu
             var Ready = !HighlighIcon->AtkResNode.IsVisible;
             var focusedAddon = GetFocusedAddon();
             var addonName = focusedAddon != null ? Marshal.PtrToStringAnsi((IntPtr)focusedAddon->Name) : string.Empty;
-            if (!Ready == true && RequestParam1 != 0)
-            {//准备到提交框
+            
+            if (!Ready == true && InvManager != 0)
+            {
+                //准备到提交框
                 if (Dirty) return;
-                if (RequestParam2 == 0)
+                if ((IntPtr) TargetInvSlot == IntPtr.Zero)
                 {
-                    RequestParam2 = Marshal.ReadInt64(Marshal.ReadIntPtr(Marshal.ReadIntPtr(Marshal.ReadIntPtr(RequestParam2_Base) + 0x70) - 0x8 + 0x106b8 + 0x70) + 0x5e8);
-
+                    for (int i = 0; i < 4; ++i) // Inventory1-4
+                    {
+                        for (int j = 0; j < 35; ++j) // 每个背包35格, 4个背包都得扫一次, 只是测试
+                        {
+                            InventoryItem* item = InventoryManager.Instance()->GetInventoryContainer((InventoryType) i)->GetInventorySlot(j);
+                            if (item->ItemID == LeveItemId) // 理符所需的物品ID
+                            {
+                                PluginLog.Log($"[RequestHook] Target Slot: {(IntPtr)item:X}"); // 按理说把这个固定下来就行了
+                                TargetInvSlot = item;
+                                break;
+                            }
+                        }
+                    }
                 }
                 else
                 {
-                    requestHook.Original(RequestParam1, RequestParam2, itemSId, 0, 1);
+                    requestHook.Original(InvManager, TargetInvSlot, itemSId, 0, 1);
                 }
-
             }
+
             if (Ready)
             {
                 var questAddon = (AtkUnitBase*)addon;
@@ -408,7 +448,8 @@ namespace Lifu
                 var eventListener = (AtkEventListener*)addon;
                 var receiveEventAddress = new IntPtr(eventListener->vfunc[2]);
                 if (addonName == "Request")
-                {//点击提交
+                {
+                    //点击提交
                     ClickRequest.Using(addon).HandOver();
                     //clickManager.SendClickThrottled(addon, EventType.CHANGE, 0, buttonNode);
                 }

@@ -2,10 +2,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<AssemblyVersion>1.1.2.0</AssemblyVersion>
-		<TargetFramework>net6.0-windows</TargetFramework>
+		<TargetFramework>net7.0-windows</TargetFramework>
 		<PlatformTarget>x64</PlatformTarget>
 		<Platforms>x64;AnyCPU</Platforms>
-		<LangVersion>9.0</LangVersion>
+		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<UseWindowsForms>true</UseWindowsForms>
 		<ProduceReferenceAssembly>false</ProduceReferenceAssembly>
@@ -15,11 +15,11 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<DalamudLibPath>E:\Dalamud\addon\Hooks\dev\</DalamudLibPath>
+		<DalamudLibPath>..\..\DalamudDep\</DalamudLibPath>
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<PostBuildEvent>
+		<PostBuildEvent Condition="'$(Configuration)' == 'Release'">
 			rmdir .\Release /s /q
 			ping localhost -n 2 &gt;nul
 			powershell "(Get-Content .\$(MSBuildProjectName).json) -Replace '9.0.0.0', '$(Version)' | Set-Content .\$(MSBuildProjectName).json"
@@ -38,23 +38,23 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Reference Include="Dalamud">
-	    <HintPath>E:\Dalamud\addon\Hooks\dev\Dalamud.dll</HintPath>
+	  <Reference Include="Dalamud" Private="False">
+	    <HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
 	  </Reference>
-	  <Reference Include="FFXIVClientStructs">
-	    <HintPath>E:\Dalamud\addon\Hooks\dev\FFXIVClientStructs.dll</HintPath>
+	  <Reference Include="FFXIVClientStructs" Private="False">
+	    <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
 	  </Reference>
-	  <Reference Include="ImGui.NET">
-	    <HintPath>E:\Dalamud\addon\Hooks\dev\ImGui.NET.dll</HintPath>
+	  <Reference Include="ImGui.NET" Private="False">
+	    <HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
 	  </Reference>
-	  <Reference Include="ImGuiScene">
-	    <HintPath>E:\Dalamud\addon\Hooks\dev\ImGuiScene.dll</HintPath>
+	  <Reference Include="ImGuiScene" Private="False">
+	    <HintPath>$(DalamudLibPath)ImGuiScene.dll</HintPath>
 	  </Reference>
-	  <Reference Include="Lumina">
-	    <HintPath>E:\Dalamud\addon\Hooks\dev\Lumina.dll</HintPath>
+	  <Reference Include="Lumina" Private="False">
+	    <HintPath>$(DalamudLibPath)Lumina.dll</HintPath>
 	  </Reference>
-	  <Reference Include="Lumina.Excel">
-	    <HintPath>E:\Dalamud\addon\Hooks\dev\Lumina.Excel.dll</HintPath>
+	  <Reference Include="Lumina.Excel" Private="False">
+	    <HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
 	  </Reference>
 	</ItemGroup>
 
