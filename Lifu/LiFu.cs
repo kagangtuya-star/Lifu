@@ -184,7 +184,7 @@ namespace Lifu
                         return;
                     }
 
-                    this.NextClick = DateTime.Now.AddMilliseconds(Math.Min(200, rd.Next(2) * 200));
+                    this.NextClick = DateTime.Now.AddMilliseconds(Math.Min(100, rd.Next(2) * 100));
                     TickTalk();
                     SelectString("ÓÐÊ²Ã´ÊÂ£¿", 3);
                     SelectIconString(LeveQuestName);
