@@ -7,6 +7,7 @@ namespace Lifu
         public void Initialize() { }
         public void Save() => DalamudApi.PluginInterface.SavePluginConfig(this);
 
+        public bool AutoTarget { get; set; } = false;
         public int LeveQuestId { get; set; } = 1635;
         public int LeveItemMagic { get; set; } = 2005;
         public int TargetDelay { get; set; } = 1500;

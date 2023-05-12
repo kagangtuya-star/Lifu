@@ -197,13 +197,13 @@ namespace Lifu
                 }
             } else
             {
-                if (Enabled)
+                if (Enabled && config.AutoTarget)
                 {
                     if ((IntPtr)TargetInvSlot != IntPtr.Zero && TargetInvSlot->ItemID == 0)
                     {
                         Enabled = false;
                         TargetInvSlot = (InventoryItem*)IntPtr.Zero;
-                        PrintError("背包内没有相应的物品!");
+                        PrintError("背包内没有理符要求的物品!");
                         return;
                     }
 
@@ -253,6 +253,17 @@ namespace Lifu
                     SubmitQuestItem(LeveItemMagic);
                     break;
                 case "toggle":
+                    if (!Enabled)
+                    {
+                        TargetInvSlot = (InventoryItem*) IntPtr.Zero;
+                        FindItem();
+                        if ((IntPtr) TargetInvSlot == IntPtr.Zero)
+                        {
+                            PrintError("背包内没有理符要求的物品!");
+                            break;
+                        }
+                    }
+
                     Enabled = !Enabled;
                     DalamudApi.Toasts.ShowQuest("理符辅助 " + (Enabled ? "开启" : "关闭"),
                     new QuestToastOptions() { PlaySound = true, DisplayCheckmark = true });
@@ -298,8 +309,15 @@ namespace Lifu
                     SetLeve();
                 }
 
+                bool _autoTarget = config.AutoTarget;
+                if (ImGui.Checkbox("自动选择NPC", ref _autoTarget))
+                {
+                    config.AutoTarget = _autoTarget;
+                    config.Save();
+                }
+
                 int _targetDelay = config.TargetDelay;
-                if (ImGui.InputInt("选择目标延时", ref _targetDelay))
+                if (ImGui.InputInt("选择NPC延时(毫秒)", ref _targetDelay))
                 {
                     config.TargetDelay = _targetDelay;
                     config.Save();
@@ -329,6 +347,7 @@ namespace Lifu
                 {
                     targetByName(config.LeveNpc2);
                 }
+                ImGui.Text("如果不想用插件的自动选择NPC，请使用SND之类的插件手动选择。");
                 ImGui.Text("请不要手动修改物品魔数！修改理服任务后会在下一次手动递交后获取。");
                 ImGui.Text("请不要轻易勾选下面的按钮，除非你知道你在干什么");
                 if (ImGui.Checkbox("调试", ref Debug))
@@ -416,19 +435,7 @@ namespace Lifu
                 if (Dirty) return;
                 if ((IntPtr) TargetInvSlot == IntPtr.Zero)
                 {
-                    for (int i = 0; i < 4; ++i) // Inventory1-4
-                    {
-                        for (int j = 0; j < 35; ++j) // 每个背包35格, 4个背包都得扫一次, 只是测试
-                        {
-                            InventoryItem* item = InventoryManager.Instance()->GetInventoryContainer((InventoryType) i)->GetInventorySlot(j);
-                            if (item->ItemID == LeveItemId) // 理符所需的物品ID
-                            {
-                                PluginLog.Log($"[RequestHook] Target Slot: {(IntPtr)item:X}"); // 按理说把这个固定下来就行了
-                                TargetInvSlot = item;
-                                break;
-                            }
-                        }
-                    }
+                    FindItem(); // Just incase
                 }
                 else
                 {
@@ -457,6 +464,23 @@ namespace Lifu
                 //{//点击前先焦点
                 //    clickManager.SendClickThrottled(addon, EventType.FOCUS_MAX, 2, buttonNode);
                 //}
+            }
+        }
+
+        void FindItem()
+        {
+            for (int i = 0; i < 4; ++i) // Inventory1-4
+            {
+                for (int j = 0; j < 35; ++j) // 每个背包35格, 4个背包都得扫一次, 只是测试
+                {
+                    InventoryItem* item = InventoryManager.Instance()->GetInventoryContainer((InventoryType)i)->GetInventorySlot(j);
+                    if (item->ItemID == LeveItemId) // 理符所需的物品ID
+                    {
+                        // PluginLog.Log($"[RequestHook] Target Slot: {(IntPtr)item:X}"); // 按理说把这个固定下来就行了
+                        TargetInvSlot = item;
+                        break;
+                    }
+                }
             }
         }
 
