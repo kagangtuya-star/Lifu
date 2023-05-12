@@ -201,10 +201,14 @@ namespace Lifu
                 {
                     if ((IntPtr)TargetInvSlot != IntPtr.Zero && TargetInvSlot->ItemID == 0)
                     {
-                        Enabled = false;
-                        TargetInvSlot = (InventoryItem*)IntPtr.Zero;
-                        PrintError("背包内没有理符要求的物品!");
-                        return;
+                        FindItem(); // We're trying to find the item again to hand over un-stackable shit
+                        if ((IntPtr)TargetInvSlot != IntPtr.Zero && TargetInvSlot->ItemID == 0)
+                        {
+                            Enabled = false;
+                            TargetInvSlot = (InventoryItem*) IntPtr.Zero;
+                            PrintError("背包内没有理符要求的物品!");
+                            return;
+                        }
                     }
 
                     if (!await && DateTime.Now > nextTarget)
@@ -215,6 +219,7 @@ namespace Lifu
                 }
             }
         }
+
         [Command("/lifu")]
         [HelpMessage("简化理符 [toggle|a|b|config]\n第一次需要手动交下任务")]
         public void LifuCommand(string command, string args)
@@ -434,7 +439,7 @@ namespace Lifu
             {
                 //准备到提交框
                 if (Dirty) return;
-                if ((IntPtr) TargetInvSlot == IntPtr.Zero)
+                if ((IntPtr) TargetInvSlot == IntPtr.Zero || TargetInvSlot->ItemID == 0)
                 {
                     FindItem(); // Just incase
                 }
