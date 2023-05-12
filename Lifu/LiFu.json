@@ -13,5 +13,6 @@
   "ApplicableVersion": "any",
   "DalamudApiLevel": 8,
   "LoadPriority": 0,
-  "Changelog": "Updated for API4"
+  "Changelog": "Updated for API4",
+  "AcceptsFeedback": false
 }
