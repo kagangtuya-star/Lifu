@@ -34,6 +34,7 @@ using FFXIVClientStructs.FFXIV.Client.Game;
 using System.Reflection.Emit;
 using static System.Net.WebRequestMethods;
 using Lumina.Excel;
+using Dalamud.Utility;
 
 namespace Lifu
 {
@@ -55,15 +56,17 @@ namespace Lifu
         private Hook<RequestHook> requestHook;
         private delegate IntPtr RequestHook(long a, InventoryItem* b, int c, Int16 d, byte e);
         public IntPtr InvManager;
-		List<Leve> LeveList;
-		List<Leve> LeveList1;
 		public InventoryItem* TargetInvSlot = (InventoryItem*) IntPtr.Zero;
 
         private delegate IntPtr LeveHook(IntPtr a);
         private Hook<LeveHook> leveHook;
         private static RaptureAtkUnitManager* raptureAtkUnitManager;
+
         ExcelSheet<Leve> Levesheet;
+        List<Leve> LeveList;
+
         ExcelSheet<Item> Itemsheet;
+
 		int LeveQuestId;
         string LeveQuestName;
         int LeveItemId;
@@ -107,19 +110,33 @@ namespace Lifu
 
             raptureAtkUnitManager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
             DalamudApi.Framework.Update += Update;
-            DalamudApi.ChatGui.ChatMessage += OnChatReceived;
             pluginInterface.UiBuilder.Draw += Draw;
             pluginInterface.UiBuilder.OpenConfigUi += ToggleUI;
-			 Levesheet = DalamudApi.DataManager.GetExcelSheet<Leve>();
-		    Itemsheet = DalamudApi.DataManager.GetExcelSheet<Item>();
-			 LeveList = new List<Leve>();
-			 LeveList1 = new List<Leve>();
-			foreach (var item in Levesheet)
-			{
-				LeveList.Add(item);
+            Levesheet = DalamudApi.DataManager.GetExcelSheet<Leve>();
+            Itemsheet = DalamudApi.DataManager.GetExcelSheet<Item>();
+            LeveList = new List<Leve>();
 
-			}
-			SetLeve();
+            ExcelSheet<CraftLeve> craftLeves = DalamudApi.DataManager.GetExcelSheet<CraftLeve>();
+            ExcelSheet<GatheringLeve> gatheringLeves = DalamudApi.DataManager.GetExcelSheet<GatheringLeve>();
+
+            foreach(CraftLeve leve in craftLeves)
+            {
+                if (leve.Leve?.Value != null && leve.Leve?.Value.DataId != 0)
+                {
+                    LeveList.Add(leve.Leve?.Value);
+                }
+            }
+
+            foreach (GatheringLeve leve in gatheringLeves)
+            {
+                Leve l = Levesheet.Where(i => i.DataId == leve.RowId).FirstOrDefault();
+                if (l != null)
+                {
+                    LeveList.Add(l);
+                }
+            }
+
+            SetLeve();
         }
 
         #region IDisposable Support
@@ -129,22 +146,12 @@ namespace Lifu
             requestHook.Disable();
             leveHook.Disable();
             DalamudApi.Framework.Update -= Update;
-            DalamudApi.ChatGui.ChatMessage -= OnChatReceived;
             pluginInterface.UiBuilder.Draw -= Draw;
             pluginInterface.UiBuilder.OpenConfigUi -= ToggleUI;
             DalamudApi.Dispose();
             GC.SuppressFinalize(this);
         }
         #endregion
-
-        private void OnChatReceived(XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled)
-        {
-            if (Enabled && type is XivChatType.ErrorMessage && message.TextValue.Contains("理符受理限额不足"))
-            {
-                Enabled = false;
-                PrintError("理符受理限额不足,Lifu已自动关闭。");
-            }
-        }
 
         private IntPtr RequestDetour(long a, InventoryItem* b, int c, short d, byte e)
         {
@@ -238,6 +245,13 @@ namespace Lifu
 
                     if (!await && DateTime.Now > NextTarget)
                     {
+                        if (!IsLeveExists((ushort) LeveQuestId) && QuestManager.Instance()->NumLeveAllowances <= 0)
+                        {
+                            Enabled = false;
+                            PrintError("理符限额不足!");
+                            return;
+                        }
+
                         targetByName(!IsLeveExists((ushort) LeveQuestId) ? config.LeveNpc1 : config.LeveNpc2);
                         await = true;
                     }
@@ -315,9 +329,8 @@ namespace Lifu
         {
             SettingsVisible = !SettingsVisible;
         }
-        int idx = 0;
-		string lifuName = "";
-		int LeveID = 0;
+
+        string filter = "";
 
 		public void Draw()
         {
@@ -335,54 +348,30 @@ namespace Lifu
                     Toggle();
                 }
 
-				string tmp = "";
-
-
-				if (ImGui.BeginCombo("名字", "理符任务选择", ImGuiComboFlags.None))
+				if (ImGui.BeginCombo("目标理符", LeveQuestName, ImGuiComboFlags.None))
                 {
-                    
-					if (ImGui.InputTextWithHint("过滤", "Filter...", ref tmp, 255))
-                    {
-						lifuName = tmp;
-                    }
-                    if (lifuName != " ")
-                    {
-                        LeveList1 = LeveList.Where(i => i.Name.ToString().Contains(lifuName)).ToList();
+                    ImGui.SetNextItemWidth(-1);
+                    ImGui.InputTextWithHint("##LeveFilter", "过滤...", ref filter, 255);
 
-                    }
-                    else  LeveList1 = LeveList;
-
-                    for (int i = 0; i < LeveList1.Count; i++)
+                    foreach(Leve leve in LeveList)
                     {
-                        if (LeveList1[i].Name!="")
+                        if (!filter.IsNullOrEmpty() && !leve.Name.ToString().Contains(filter))
                         {
-							if (ImGui.Selectable(LeveList1[i].Name, true))
-							{
-								LeveID = i;
-                                lifuName = " ";
-							}
-						}
-                       
+                            continue;
+                        }
+
+                        if (ImGui.Selectable(leve.Name))
+                        {
+                            config.LeveQuestId = (int) leve.RowId;
+                            config.Save();
+                            SetLeve();
+                            Dirty = true;
+                        }
                     }
-						ImGui.EndCombo();
-				}
-                if (LeveList1.Count> LeveID)
-                {
-					var abc = LeveList.Where(i => i == LeveList1[LeveID]).FirstOrDefault();
-                    idx = (int)abc.RowId;
-                    if (idx>0) config.LeveQuestId =idx;
-                    config.Save();
+
+				    ImGui.EndCombo();
 				}
 
-				//ImGui.Text(lifuName);
-				var _LeveQuestId = config.LeveQuestId;
-                if (ImGui.InputInt("理符任务ID", ref _LeveQuestId))
-                {
-                    config.LeveQuestId = _LeveQuestId;
-                    config.Save();
-                    SetLeve();
-                    Dirty = true;
-                }
                 var _LeveItemMagic = config.LeveItemMagic;
                 if (ImGui.InputInt("递交物品魔数", ref _LeveItemMagic, 1, 1, Debug ? 0 : ImGuiInputTextFlags.ReadOnly))
                 {

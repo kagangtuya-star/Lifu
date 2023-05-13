@@ -17,6 +17,10 @@
 	<PropertyGroup>
 		<DalamudLibPath>E:\Dalamud\addon\Hooks\dev\</DalamudLibPath>
 	</PropertyGroup>
+	
+	<PropertyGroup Condition="Exists('..\..\DalamudDep\')">
+		<DalamudLibPath>..\..\DalamudDep\</DalamudLibPath>
+	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="ExposedObject" Version="2.1.0" />
