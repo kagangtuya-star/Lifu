@@ -42,8 +42,7 @@ namespace Lifu
         private Configuration config;
         private DalamudPluginInterface pluginInterface;
 
-        public GameObject FoucsObject;
-        private AccessGameObjDelegate? accessGameObject;
+        private AccessGameObjDelegate? AccessGameObject;
         private delegate void AccessGameObjDelegate(IntPtr g_ControlSystem_TargetSystem, IntPtr targte, char p3);
 
         private Hook<TakenQeustHook> takenQeustHook;
@@ -53,23 +52,25 @@ namespace Lifu
         private Hook<RequestHook> requestHook;
         private delegate IntPtr RequestHook(long a, InventoryItem* b, int c, Int16 d, byte e);
         public IntPtr InvManager;
+
         public InventoryItem* TargetInvSlot = (InventoryItem*) IntPtr.Zero;
 
         private delegate IntPtr LeveHook(IntPtr a);
         private Hook<LeveHook> leveHook;
-        // public IntPtr leveQuests;
-        // private IntPtr leveList;
-        // public IntPtr RequestParam2_Base;
         private static RaptureAtkUnitManager* raptureAtkUnitManager;
 
         int LeveQuestId;
         string LeveQuestName;
         int LeveItemId;
         int LeveItemMagic;
+
         string LeveTakenGui;
         string LeveNpc1;
         string LeveNpc2;
-        public DateTime NextClick;
+
+        private DateTime NextClick;
+        private DateTime NextTarget;
+
         bool Debug;
         bool Dirty;
 
@@ -77,35 +78,36 @@ namespace Lifu
         {
             this.pluginInterface = pluginInterface;
             DalamudApi.Initialize(this, pluginInterface);
-            this.config = (((Configuration)this.pluginInterface.GetPluginConfig()) ?? new Configuration());
+            this.config = ((Configuration) this.pluginInterface.GetPluginConfig()) ?? new Configuration();
             this.config.Initialize();
 
-            accessGameObject = Marshal.GetDelegateForFunctionPointer<AccessGameObjDelegate>(DalamudApi.SigScanner.ScanText("E9 ?? ?? ?? ?? 48 8B 01 FF 50 08"));
+            AccessGameObject = Marshal.GetDelegateForFunctionPointer<AccessGameObjDelegate>(DalamudApi.SigScanner.ScanText("E9 ?? ?? ?? ?? 48 8B 01 FF 50 08"));
 
             TakenQeustParam1 = DalamudApi.SigScanner.GetStaticAddressFromSig("48 89 05 ?? ?? ?? ?? 8B 44 24 70");
             InvManager = (IntPtr) InventoryManager.Instance();
-            // RequestParam2_Base = DalamudApi.SigScanner.GetStaticAddressFromSig("4C 8B 40 18 45 8B 40 18");
-            // RequestParam2 = Marshal.ReadInt64(Marshal.ReadIntPtr(Marshal.ReadIntPtr(Marshal.ReadIntPtr(RequestParam2_Base) + 0x70) - 0x8 + 0x106b8 + 0x70) + 0x5e8);
-            // Print($"{RequestParam2:X}");
-            // leveList = DalamudApi.SigScanner.GetStaticAddressFromSig("48 8D 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8D 0D ?? ?? ?? ?? 48 83 C4 28 E9 ?? ?? ?? ?? 48 83 EC 28 33 D2") + 0xa268 + 0xa8 + 0x54;
+
             this.NextClick = DateTime.Now;
-            takenQeustHook ??= Hook<TakenQeustHook>.FromAddress(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B6 D8 EB ?? 48 8B 01"), new TakenQeustHook(TakenQeustDetour));
+            this.NextTarget = DateTime.Now;
+
+            takenQeustHook ??= Hook<TakenQeustHook>.FromAddress(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 0F B6 D8 EB ?? 48 8B 01"), TakenQeustDetour);
             takenQeustHook.Enable();
-            requestHook ??= Hook<RequestHook>.FromAddress(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B CE E8 ?? ?? ?? ?? 48 8B 5C 24 40 4C 8B 74 24 48"), new RequestHook(RequestDetour));
+            requestHook ??= Hook<RequestHook>.FromAddress(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8B CE E8 ?? ?? ?? ?? 48 8B 5C 24 40 4C 8B 74 24 48"), RequestDetour);
             requestHook.Enable();
-            leveHook ??= Hook<LeveHook>.FromAddress(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8D BB ?? ?? ?? ?? 33 D2 8D 4E 10"), new LeveHook(LeveDetour));
+            leveHook ??= Hook<LeveHook>.FromAddress(DalamudApi.SigScanner.ScanText("E8 ?? ?? ?? ?? 48 8D BB ?? ?? ?? ?? 33 D2 8D 4E 10"), LeveDetour);
             leveHook.Enable();
 
             Enabled = false;
             Debug = false;
             Dirty = false;
+
             raptureAtkUnitManager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
             DalamudApi.Framework.Update += Update;
             pluginInterface.UiBuilder.Draw += Draw;
-            pluginInterface.UiBuilder.OpenConfigUi += DrawConfigUI;
+            pluginInterface.UiBuilder.OpenConfigUi += ToggleUI;
 
             SetLeve();
         }
+
         #region IDisposable Support
         public void Dispose()
         {
@@ -114,7 +116,7 @@ namespace Lifu
             leveHook.Disable();
             DalamudApi.Framework.Update -= Update;
             pluginInterface.UiBuilder.Draw -= Draw;
-            pluginInterface.UiBuilder.OpenConfigUi -= DrawConfigUI;
+            pluginInterface.UiBuilder.OpenConfigUi -= ToggleUI;
             DalamudApi.Dispose();
             GC.SuppressFinalize(this);
         }
@@ -142,7 +144,6 @@ namespace Lifu
         private IntPtr TakenQeustDetour(long a1, long a2) => takenQeustHook.Original(a1, a2);
         private IntPtr LeveDetour(IntPtr a)
         {
-            // leveQuests = a - 84;
             return leveHook.Original(a);
         }
 
@@ -158,6 +159,7 @@ namespace Lifu
             LeveNpc2 = config.LeveNpc2;
             LeveTakenGui = $"将{ItemName}提交给{LeveNpc2}";
         }
+
         public static bool IsAddonReady(AtkUnitBase* addon)
         {
             return addon->IsVisible && addon->UldManager.LoadedState == AtkLoadState.Loaded;
@@ -167,7 +169,6 @@ namespace Lifu
         Random rd = new Random();
 
         private bool await = false;
-        private DateTime nextTarget;
 
         private void Update(Framework framework)
         {
@@ -192,7 +193,7 @@ namespace Lifu
                     SelectYes("确定要交易优质道具吗？");
                     TickQuestComplete();
 
-                    nextTarget = DateTime.Now.AddMilliseconds(config.TargetDelay);
+                    NextTarget = DateTime.Now.AddMilliseconds(config.TargetDelay);
                     await = false;
                 }
             } else
@@ -211,7 +212,7 @@ namespace Lifu
                         }
                     }
 
-                    if (!await && DateTime.Now > nextTarget)
+                    if (!await && DateTime.Now > NextTarget)
                     {
                         targetByName(!IsLeveExists((ushort) LeveQuestId) ? config.LeveNpc1 : config.LeveNpc2);
                         await = true;
@@ -235,7 +236,7 @@ namespace Lifu
                     targetByName(LeveNpc2);
                     break;
                 case "config":
-                    DrawConfigUI();
+                    ToggleUI();
                     break;
                 case "tc":
                     TickQuestComplete();
@@ -258,47 +259,55 @@ namespace Lifu
                     SubmitQuestItem(LeveItemMagic);
                     break;
                 case "toggle":
-                    if (!Enabled)
-                    {
-                        TargetInvSlot = (InventoryItem*) IntPtr.Zero;
-                        FindItem();
-                        if ((IntPtr) TargetInvSlot == IntPtr.Zero)
-                        {
-                            PrintError("背包内没有理符要求的物品!");
-                            PrintError("如果是武器, 请放到背包, 不要放在兵装库!");
-                            break;
-                        }
-                    }
-
-                    Enabled = !Enabled;
-                    DalamudApi.Toasts.ShowQuest("理符辅助 " + (Enabled ? "开启" : "关闭"),
-                    new QuestToastOptions() { PlaySound = true, DisplayCheckmark = true });
+                    Toggle();
                     break;
                 default:
                     break;
             }
         }
 
-        private bool settingsVisible = false;
-        public bool SettingsVisible
+        public void Toggle()
         {
-            get { return this.settingsVisible; }
-            set { this.settingsVisible = value; }
+            if (!Enabled)
+            {
+                TargetInvSlot = (InventoryItem*)IntPtr.Zero;
+                FindItem();
+                if ((IntPtr)TargetInvSlot == IntPtr.Zero)
+                {
+                    PrintError("背包内没有理符要求的物品!");
+                    PrintError("如果是武器, 请放到背包, 不要放在兵装库!");
+                    return;
+                }
+            }
+
+            Enabled = !Enabled;
+            DalamudApi.Toasts.ShowQuest("理符辅助 " + (Enabled ? "开启" : "关闭"),
+            new QuestToastOptions() { PlaySound = true, DisplayCheckmark = true });
         }
-        private void DrawConfigUI()
+
+        private bool SettingsVisible = false;
+
+        private void ToggleUI()
         {
             SettingsVisible = !SettingsVisible;
         }
+
         public void Draw()
         {
             if (!SettingsVisible)
             {
                 return;
             }
-            if (ImGui.Begin("理符设置", ref this.settingsVisible,
-                ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
+
+            if (ImGui.Begin("理符设置", ref this.SettingsVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
             {
                 ImGui.Text(LeveQuestName);
+
+                if (ImGui.Button(Enabled ? "禁用" : "启用"))
+                {
+                    Toggle();
+                }
+
                 var _LeveQuestId = config.LeveQuestId;
                 if (ImGui.InputInt("理符任务ID", ref _LeveQuestId))
                 {
@@ -341,6 +350,7 @@ namespace Lifu
                 {
                     targetByName(config.LeveNpc1);
                 }
+
                 var _npc2 = config.LeveNpc2;
                 if (ImGui.InputText("交任务NPC", ref _npc2, 16))
                 {
@@ -353,12 +363,12 @@ namespace Lifu
                 {
                     targetByName(config.LeveNpc2);
                 }
+
                 ImGui.Text("如果不想用插件的自动选择NPC，请使用SND之类的插件手动选择。");
                 ImGui.Text("请不要手动修改物品魔数！修改理服任务后会在下一次手动递交后获取。");
                 ImGui.Text("请不要轻易勾选下面的按钮，除非你知道你在干什么");
-                if (ImGui.Checkbox("调试", ref Debug))
-                {
-                }
+
+                ImGui.Checkbox("调试", ref Debug);
                 if (ImGui.Button("从下次提交获取参数"))
                 {
                     Dirty = true;
@@ -551,11 +561,11 @@ namespace Lifu
         void targetByName(string name)
         {
             Task.Run(() => {
-                var Actors = DalamudApi.ObjectTable.Where(i => i.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.EventNpc)
-                    .Where(i => i.Name.ToString() == name);
-                foreach (var actor in Actors) FoucsObject = actor;
-                accessGameObject(DalamudApi.TargetManager.Address, FoucsObject.Address, (char)0);
-                //MouseDo.SendKeycode((uint)VirtualKey.ESCAPE);
+                GameObject Actor = DalamudApi.ObjectTable.Where(i => i.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.EventNpc && i.Name.ToString() == name).FirstOrDefault();
+                if (Actor != null)
+                {
+                    AccessGameObject(DalamudApi.TargetManager.Address, Actor.Address, (char)0);
+                }
             });
         }
         public static AtkUnitBase* GetFocusedAddon()
