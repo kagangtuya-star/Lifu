@@ -102,6 +102,7 @@ namespace Lifu
 
             raptureAtkUnitManager = AtkStage.GetSingleton()->RaptureAtkUnitManager;
             DalamudApi.Framework.Update += Update;
+            DalamudApi.ChatGui.ChatMessage += OnChatReceived;
             pluginInterface.UiBuilder.Draw += Draw;
             pluginInterface.UiBuilder.OpenConfigUi += ToggleUI;
 
@@ -115,12 +116,22 @@ namespace Lifu
             requestHook.Disable();
             leveHook.Disable();
             DalamudApi.Framework.Update -= Update;
+            DalamudApi.ChatGui.ChatMessage -= OnChatReceived;
             pluginInterface.UiBuilder.Draw -= Draw;
             pluginInterface.UiBuilder.OpenConfigUi -= ToggleUI;
             DalamudApi.Dispose();
             GC.SuppressFinalize(this);
         }
         #endregion
+
+        private void OnChatReceived(XivChatType type, uint senderId, ref SeString sender, ref SeString message, ref bool isHandled)
+        {
+            if (Enabled && type is XivChatType.ErrorMessage && message.TextValue.Contains("理符受理限额不足"))
+            {
+                Enabled = false;
+                PrintError("理符受理限额不足,Lifu已自动关闭。");
+            }
+        }
 
         private IntPtr RequestDetour(long a, InventoryItem* b, int c, short d, byte e)
         {
