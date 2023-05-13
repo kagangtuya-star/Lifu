@@ -487,12 +487,12 @@ namespace Lifu
         {
             for (int i = 0; i < 4; ++i) // Inventory1-4
             {
-                for (int j = 0; j < 35; ++j) // 每个背包35格, 4个背包都得扫一次, 只是测试
+                InventoryContainer* container = InventoryManager.Instance()->GetInventoryContainer((InventoryType)i);
+                for (int j = 0; j < container->Size; ++j)
                 {
-                    InventoryItem* item = InventoryManager.Instance()->GetInventoryContainer((InventoryType)i)->GetInventorySlot(j);
-                    if (item->ItemID == LeveItemId) // 理符所需的物品ID
+                    InventoryItem* item = container->GetInventorySlot(j);
+                    if (item is not null && item->ItemID == LeveItemId) // 理符所需的物品ID
                     {
-                        // PluginLog.Log($"[RequestHook] Target Slot: {(IntPtr)item:X}"); // 按理说把这个固定下来就行了
                         TargetInvSlot = item;
                         break;
                     }
