@@ -15,7 +15,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<DalamudLibPath>..\..\DalamudDep\</DalamudLibPath>
+		<DalamudLibPath>E:\Dalamud\addon\Hooks\dev\</DalamudLibPath>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -31,6 +31,9 @@ using ImGuiNET;
 using ClickLib.Clicks;
 using FFXIVClientStructs.Attributes;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using System.Reflection.Emit;
+using static System.Net.WebRequestMethods;
+using Lumina.Excel;
 
 namespace Lifu
 {
@@ -52,14 +55,16 @@ namespace Lifu
         private Hook<RequestHook> requestHook;
         private delegate IntPtr RequestHook(long a, InventoryItem* b, int c, Int16 d, byte e);
         public IntPtr InvManager;
-
-        public InventoryItem* TargetInvSlot = (InventoryItem*) IntPtr.Zero;
+		List<Leve> LeveList;
+		List<Leve> LeveList1;
+		public InventoryItem* TargetInvSlot = (InventoryItem*) IntPtr.Zero;
 
         private delegate IntPtr LeveHook(IntPtr a);
         private Hook<LeveHook> leveHook;
         private static RaptureAtkUnitManager* raptureAtkUnitManager;
-
-        int LeveQuestId;
+        ExcelSheet<Leve> Levesheet;
+        ExcelSheet<Item> Itemsheet;
+		int LeveQuestId;
         string LeveQuestName;
         int LeveItemId;
         int LeveItemMagic;
@@ -104,8 +109,16 @@ namespace Lifu
             DalamudApi.Framework.Update += Update;
             pluginInterface.UiBuilder.Draw += Draw;
             pluginInterface.UiBuilder.OpenConfigUi += ToggleUI;
+			 Levesheet = DalamudApi.DataManager.GetExcelSheet<Leve>();
+		    Itemsheet = DalamudApi.DataManager.GetExcelSheet<Item>();
+			 LeveList = new List<Leve>();
+			 LeveList1 = new List<Leve>();
+			foreach (var item in Levesheet)
+			{
+				LeveList.Add(item);
 
-            SetLeve();
+			}
+			SetLeve();
         }
 
         #region IDisposable Support
@@ -291,8 +304,11 @@ namespace Lifu
         {
             SettingsVisible = !SettingsVisible;
         }
+        int idx = 0;
+		string lifuName = "";
+		int LeveID = 0;
 
-        public void Draw()
+		public void Draw()
         {
             if (!SettingsVisible)
             {
@@ -308,7 +324,47 @@ namespace Lifu
                     Toggle();
                 }
 
-                var _LeveQuestId = config.LeveQuestId;
+				string tmp = "";
+
+
+				if (ImGui.BeginCombo("名字", "理符任务选择", ImGuiComboFlags.None))
+                {
+                    
+					if (ImGui.InputTextWithHint("过滤", "Filter...", ref tmp, 255))
+                    {
+						lifuName = tmp;
+                    }
+                    if (lifuName != " ")
+                    {
+                        LeveList1 = LeveList.Where(i => i.Name.ToString().Contains(lifuName)).ToList();
+
+                    }
+                    else  LeveList1 = LeveList;
+
+                    for (int i = 0; i < LeveList1.Count; i++)
+                    {
+                        if (LeveList1[i].Name!="")
+                        {
+							if (ImGui.Selectable(LeveList1[i].Name, true))
+							{
+								LeveID = i;
+                                lifuName = " ";
+							}
+						}
+                       
+                    }
+						ImGui.EndCombo();
+				}
+                if (LeveList1.Count> LeveID)
+                {
+					var abc = LeveList.Where(i => i == LeveList1[LeveID]).FirstOrDefault();
+                    idx = (int)abc.RowId;
+                    if (idx>0) config.LeveQuestId =idx;
+                    config.Save();
+				}
+
+				//ImGui.Text(lifuName);
+				var _LeveQuestId = config.LeveQuestId;
                 if (ImGui.InputInt("理符任务ID", ref _LeveQuestId))
                 {
                     config.LeveQuestId = _LeveQuestId;
@@ -376,7 +432,7 @@ namespace Lifu
                 ImGui.SameLine();
                 ImGui.Text(Dirty ? "：是" : "：否");
             }
-        }
+		}
 
         void TickTalk()
         {
