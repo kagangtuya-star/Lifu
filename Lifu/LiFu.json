@@ -11,7 +11,8 @@
   "InternalName": "LiFu",
   "AssemblyVersion": "",
   "ApplicableVersion": "any",
-  "DalamudApiLevel": 7,
+  "DalamudApiLevel": 8,
   "LoadPriority": 0,
-  "Changelog": "Updated for API4"
+  "Changelog": "Updated for API4",
+  "AcceptsFeedback": false
 }
