@@ -204,10 +204,10 @@ namespace Lifu
 
                     this.NextClick = DateTime.Now.AddMilliseconds(Math.Min(100, rd.Next(2) * 100));
                     TickTalk();
-                    SelectString("ÓĞÊ²Ã´ÊÂ£¿", 3);
+                    SelectString("æœ‰ä»€ä¹ˆäº‹ï¼Ÿ", 3);
                     SelectIconString(LeveQuestName);
                     SubmitQuestItem(LeveItemMagic);
-                    SelectYes("È·¶¨Òª½»Ò×ÓÅÖÊµÀ¾ßÂğ£¿");
+                    SelectYes("ç¡®å®šè¦äº¤æ˜“ä¼˜è´¨é“å…·å—ï¼Ÿ");
                     TickQuestComplete();
 
                     NextTarget = DateTime.Now.AddMilliseconds(config.TargetDelay);
@@ -224,7 +224,7 @@ namespace Lifu
                         {
                             Enabled = false;
                             TargetInvSlot = (InventoryItem*) IntPtr.Zero;
-                            PrintError("±³°üÄÚÃ»ÓĞÀí·ûÒªÇóµÄÎïÆ·!");
+                            PrintError("èƒŒåŒ…å†…æ²¡æœ‰ç†ç¬¦è¦æ±‚çš„ç‰©å“!");
                             return;
                         }
                     }
@@ -234,7 +234,7 @@ namespace Lifu
                         if (!IsLeveExists((ushort) LeveQuestId) && QuestManager.Instance()->NumLeveAllowances <= 0)
                         {
                             Enabled = false;
-                            PrintError("Àí·ûÏŞ¶î²»×ã!");
+                            PrintError("ç†ç¬¦é™é¢ä¸è¶³!");
                             return;
                         }
 
@@ -246,7 +246,7 @@ namespace Lifu
         }
 
         [Command("/lifu")]
-        [HelpMessage("/lifu <toggle/config/a/b> | ¼ò»¯½»Àí·ûµÄ¹ı³Ì")]
+        [HelpMessage("/lifu <toggle/config/a/b> | ç®€åŒ–äº¤ç†ç¬¦çš„è¿‡ç¨‹")]
         public void LifuCommand(string command, string args)
         {
             string[] array = args.Split(new char[] { ' ' });
@@ -269,7 +269,7 @@ namespace Lifu
                     TickTalk();
                     break;
                 case "yes":
-                    SelectYes("È·¶¨Òª½»Ò×ÓÅÖÊµÀ¾ßÂğ£¿");
+                    SelectYes("ç¡®å®šè¦äº¤æ˜“ä¼˜è´¨é“å…·å—ï¼Ÿ");
                     break;
                 case "esc":
                     Task.Run(() => {
@@ -298,14 +298,14 @@ namespace Lifu
                 FindItem();
                 if ((IntPtr)TargetInvSlot == IntPtr.Zero)
                 {
-                    PrintError("±³°üÄÚÃ»ÓĞÀí·ûÒªÇóµÄÎïÆ·!");
-                    PrintError("Èç¹ûÊÇÎäÆ÷, Çë·Åµ½±³°ü, ²»Òª·ÅÔÚ±ø×°¿â!");
+                    PrintError("èƒŒåŒ…å†…æ²¡æœ‰ç†ç¬¦è¦æ±‚çš„ç‰©å“!");
+                    PrintError("å¦‚æœæ˜¯æ­¦å™¨, è¯·æ”¾åˆ°èƒŒåŒ…, ä¸è¦æ”¾åœ¨å…µè£…åº“!");
                     return;
                 }
             }
 
             Enabled = !Enabled;
-            DalamudApi.Toasts.ShowQuest("Àí·û¸¨Öú " + (Enabled ? "¿ªÆô" : "¹Ø±Õ"),
+            DalamudApi.Toasts.ShowQuest("ç†ç¬¦è¾…åŠ© " + (Enabled ? "å¼€å¯" : "å…³é—­"),
             new QuestToastOptions() { PlaySound = true, DisplayCheckmark = true });
         }
 
@@ -325,20 +325,20 @@ namespace Lifu
                 return;
             }
 
-            if (ImGui.Begin("Àí·ûÉèÖÃ", ref this.SettingsVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
+            if (ImGui.Begin("ç†ç¬¦è®¾ç½®", ref this.SettingsVisible, ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
             {
-                if (ImGui.Button($"{(Enabled ? "½ûÓÃ" : "ÆôÓÃ")}Àí·ûÖúÊÖ"))
+                if (ImGui.Button($"{(Enabled ? "ç¦ç”¨" : "å¯ç”¨")}ç†ç¬¦åŠ©æ‰‹"))
                 {
                     Toggle();
                 }
 
                 ImGui.SameLine();
-                ImGui.Text($"[ĞèÒª±³°üÄÚÓµÓĞ {TargetItemName}]");
+                ImGui.Text($"[éœ€è¦èƒŒåŒ…å†…æ‹¥æœ‰ {TargetItemName}]");
 
-				if (ImGui.BeginCombo("Ä¿±êÀí·û", LeveQuestName, ImGuiComboFlags.None))
+				if (ImGui.BeginCombo("ç›®æ ‡ç†ç¬¦", LeveQuestName, ImGuiComboFlags.None))
                 {
                     ImGui.SetNextItemWidth(-1);
-                    ImGui.InputTextWithHint("##LeveFilter", "¹ıÂË...", ref filter, 255);
+                    ImGui.InputTextWithHint("##LeveFilter", "è¿‡æ»¤...", ref filter, 255);
 
                     foreach(Leve leve in LeveList)
                     {
@@ -359,49 +359,49 @@ namespace Lifu
 				}
 
                 bool _autoTarget = config.AutoTarget;
-                if (ImGui.Checkbox("×Ô¶¯Ñ¡ÔñNPC", ref _autoTarget))
+                if (ImGui.Checkbox("è‡ªåŠ¨é€‰æ‹©NPC", ref _autoTarget))
                 {
                     config.AutoTarget = _autoTarget;
                     config.Save();
                 }
 
                 int _targetDelay = config.TargetDelay;
-                if (ImGui.InputInt("×Ô¶¯Ñ¡ÔñNPCÑÓÊ±(ºÁÃë)", ref _targetDelay))
+                if (ImGui.InputInt("è‡ªåŠ¨é€‰æ‹©NPCå»¶æ—¶(æ¯«ç§’)", ref _targetDelay))
                 {
                     config.TargetDelay = Math.Max(0, _targetDelay);
                     config.Save();
                 }
 
                 var _npc1 = config.LeveNpc1;
-                if (ImGui.InputText("½ÓÈÎÎñNPC", ref _npc1, 16))
+                if (ImGui.InputText("æ¥ä»»åŠ¡NPC", ref _npc1, 16))
                 {
                     config.LeveNpc1 = _npc1;
                     config.Save();
                     SetLeve();
                 }
                 ImGui.SameLine();
-                if (ImGui.Button("Ñ¡ÖĞ"))
+                if (ImGui.Button("é€‰ä¸­"))
                 {
                     TargetByName(config.LeveNpc1);
                 }
 
                 var _npc2 = config.LeveNpc2;
-                if (ImGui.InputText("½»ÈÎÎñNPC", ref _npc2, 16))
+                if (ImGui.InputText("äº¤ä»»åŠ¡NPC", ref _npc2, 16))
                 {
                     config.LeveNpc2 = _npc2;
                     config.Save();
                     SetLeve();
                 }
                 ImGui.SameLine();
-                if (ImGui.Button("Ñ¡ÖĞ2"))
+                if (ImGui.Button("é€‰ä¸­2"))
                 {
                     TargetByName(config.LeveNpc2);
                 }
 
-                ImGui.Text("Èç¹û²»ÏëÓÃ²å¼şµÄ×Ô¶¯Ñ¡ÔñNPC£¬ÇëÊ¹ÓÃSNDÖ®ÀàµÄ²å¼şÖ´ĞĞÖ¸Áî½øĞĞÊÖ¶¯Ñ¡Ôñ¡£");
+                ImGui.Text("å¦‚æœä¸æƒ³ç”¨æ’ä»¶çš„è‡ªåŠ¨é€‰æ‹©NPCï¼Œè¯·ä½¿ç”¨SNDä¹‹ç±»çš„æ’ä»¶æ‰§è¡ŒæŒ‡ä»¤è¿›è¡Œæ‰‹åŠ¨é€‰æ‹©ã€‚");
 
-                ImGui.Text("Çë²»ÒªÇáÒ×¹´Ñ¡ÏÂÃæµÄ°´Å¥£¬³ı·ÇÄãÖªµÀÄãÔÚ¸ÉÊ²Ã´");
-                ImGui.Checkbox("µ÷ÊÔ", ref Debug);
+                ImGui.Text("è¯·ä¸è¦è½»æ˜“å‹¾é€‰ä¸‹é¢çš„æŒ‰é’®ï¼Œé™¤éä½ çŸ¥é“ä½ åœ¨å¹²ä»€ä¹ˆ");
+                ImGui.Checkbox("è°ƒè¯•", ref Debug);
             }
 		}
 
@@ -422,7 +422,7 @@ namespace Lifu
                 if (b > 0) takenQeustHook.Original(b, LeveQuestId);
             }
             else
-            {   //Ìø¶Ô»°
+            {   //è·³å¯¹è¯
                 ClickTalk.Using(addon).Click();
                 //clickManager.SendClick(addon, ClickManager.EventType.MOUSE_CLICK, 0, ((AddonTalk*)talkAddon)->AtkEventListenerUnk.AtkStage);
             }
@@ -457,7 +457,7 @@ namespace Lifu
             var buttonNode = (AtkComponentNode*)questAddon->UldManager.NodeList[4];
             if (buttonNode->Component->UldManager.NodeListCount <= 2) return;
             var textComponent = (AtkTextNode*)buttonNode->Component->UldManager.NodeList[2];
-            if ("Íê³É" != Marshal.PtrToStringUTF8((IntPtr)textComponent->NodeText.StringPtr)) return;
+            if ("å®Œæˆ" != Marshal.PtrToStringUTF8((IntPtr)textComponent->NodeText.StringPtr)) return;
             if (!((AddonJournalResult*)addon)->CompleteButton->IsEnabled) return;
             ClickJournalResult.Using(addon).Complete();
             //clickManager.SendClickThrottled(addon, EventType.CHANGE, 1, ((AddonJournalResult*)addon)->CompleteButton->AtkComponentBase.OwnerNode);
@@ -477,7 +477,7 @@ namespace Lifu
             
             if (!Ready == true && InvManager != 0)
             {
-                //²éÕÒÎïÆ·ÄÚ´æµØÖ·²¢Ìá½»
+                //æŸ¥æ‰¾ç‰©å“å†…å­˜åœ°å€å¹¶æäº¤
                 if ((IntPtr) TargetInvSlot == IntPtr.Zero || TargetInvSlot->ItemID == 0)
                 {
                     FindItem(); // Just incase
@@ -496,17 +496,17 @@ namespace Lifu
                 var textComponent = (AtkTextNode*)buttonNode->Component->UldManager.NodeList[2];
                 var abc = Marshal.PtrToStringUTF8((IntPtr)textComponent->NodeText.StringPtr);
 
-                if ("µİ½»" != Marshal.PtrToStringUTF8((IntPtr)textComponent->NodeText.StringPtr)) return;
+                if ("é€’äº¤" != Marshal.PtrToStringUTF8((IntPtr)textComponent->NodeText.StringPtr)) return;
                 var eventListener = (AtkEventListener*)addon;
                 var receiveEventAddress = new IntPtr(eventListener->vfunc[2]);
                 if (addonName == "Request")
                 {
-                    //µã»÷Ìá½»
+                    //ç‚¹å‡»æäº¤
                     ClickRequest.Using(addon).HandOver();
                     //clickManager.SendClickThrottled(addon, EventType.CHANGE, 0, buttonNode);
                 }
                 //else
-                //{//µã»÷Ç°ÏÈ½¹µã
+                //{//ç‚¹å‡»å‰å…ˆç„¦ç‚¹
                 //    clickManager.SendClickThrottled(addon, EventType.FOCUS_MAX, 2, buttonNode);
                 //}
             }
@@ -520,7 +520,7 @@ namespace Lifu
                 for (int j = 0; j < container->Size; ++j)
                 {
                     InventoryItem* item = container->GetInventorySlot(j);
-                    if (item is not null && item->ItemID == LeveItemId) // Àí·ûËùĞèµÄÎïÆ·ID
+                    if (item is not null && item->ItemID == LeveItemId) // ç†ç¬¦æ‰€éœ€çš„ç‰©å“ID
                     {
                         TargetInvSlot = item;
                         break;
@@ -584,7 +584,7 @@ namespace Lifu
             if (title != Marshal.PtrToStringUTF8((IntPtr)txt->NodeText.StringPtr)) return;
             if (a->Component->UldManager.NodeListCount <= 2) return;
             var b = (AtkTextNode*)a->Component->UldManager.NodeList[2];
-            if ("È·¶¨" != Marshal.PtrToStringUTF8((IntPtr)b->NodeText.StringPtr)) return;
+            if ("ç¡®å®š" != Marshal.PtrToStringUTF8((IntPtr)b->NodeText.StringPtr)) return;
             ClickSelectYesNo.Using(addon).Yes();
             //clickManager.SendClick(addon, EventType.CHANGE, 0, ((AddonSelectYesno*)addon)->YesButton->AtkComponentBase.OwnerNode);
         }
