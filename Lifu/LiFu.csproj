@@ -15,7 +15,7 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<DalamudLibPath>E:\Dalamud\addon\Hooks\dev\</DalamudLibPath>
+		<DalamudLibPath>F:\ff14\卫月启动器\XIVLauncherCN\Roaming\addon\Hooks\dev\</DalamudLibPath>
 	</PropertyGroup>
 	
 	<PropertyGroup Condition="Exists('..\..\DalamudDep\')">
